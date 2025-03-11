@@ -30,7 +30,7 @@ class SimpleAPI(BaseHTTPRequestHandler):
             self.send_error(404, "Not Found")
 
     def do_DELETE(self):
-        if self.path.startswith("/books/"):
+        if self.path.startswith("/books"):
             self.handle_delete()
         else:
             self.send_error(404, "Not Found")
@@ -125,22 +125,35 @@ class SimpleAPI(BaseHTTPRequestHandler):
         self.wfile.write(f"Book {book_id} updated".encode())
 
     def handle_delete(self):
-        book_id = self.path.split("/")[-1]
         tree = ET.parse(DATA_FILE)
         root = tree.getroot()
 
-        book = root.find(f".//book[@id='{book_id}']")
-        if book is None:
-            self.send_error(404, "Book not found")
-            return
+        parts = self.path.split("/")
+    
+        if len(parts) > 2 and parts[2].isdigit():
+            book_id = parts[2]
+            book = root.find(f".//book[@id='{book_id}']")
+            if book is None:
+                self.send_error(404, "Book not found")
+                return
 
-        root.remove(book)
-        tree.write(DATA_FILE)
+            root.remove(book)
+            tree.write(DATA_FILE)
 
-        self.send_response(200)
-        self.send_header("Content-type", "text/plain")
-        self.end_headers()
-        self.wfile.write(f"Book {book_id} deleted".encode())
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(f"Book {book_id} deleted".encode())
+
+        else: 
+            root.clear()  
+            tree.write(DATA_FILE)
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write("All books deleted".encode())
+
 
 
 def run():
